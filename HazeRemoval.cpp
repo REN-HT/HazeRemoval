@@ -16,8 +16,8 @@ void makeDepth32f(Mat& source, Mat& output)
 void guidedFilter(Mat& source, Mat& guided_image, Mat& output, int radius, float epsilon)
 {
 	//CV_Assert(radius >= 2 && epsilon > 0);
-	CV_Assert(source.data != NULL && source.channels() == 1);//¿É¸Ä±äÊäÈëÍ¼ÏñÀàĞÍ£¨Í¨µÀ£©
-	CV_Assert(guided_image.channels() == 1);                 //µ¼ÏòÍ¼Ò»°ãÎªµ¥Í¨µÀ
+	CV_Assert(source.data != NULL && source.channels() == 1);//å¯æ”¹å˜è¾“å…¥å›¾åƒç±»å‹ï¼ˆé€šé“ï¼‰
+	CV_Assert(guided_image.channels() == 1);                 //å¯¼å‘å›¾ä¸€èˆ¬ä¸ºå•é€šé“
 	CV_Assert(source.rows == guided_image.rows && source.cols == guided_image.cols);
 
 	Mat guided;
@@ -27,33 +27,33 @@ void guidedFilter(Mat& source, Mat& guided_image, Mat& output, int radius, float
 		guided = guided_image;
 	
 	Mat source_32f, guided_32f;
-	makeDepth32f(source, source_32f);//½«ÊäÈëÀ©Õ¹Îª32Î»¸¡µãĞÍ£¬ÒÔ±ãÒÔºó×ö³Ë·¨
+	makeDepth32f(source, source_32f);//å°†è¾“å…¥æ‰©å±•ä¸º32ä½æµ®ç‚¹å‹ï¼Œä»¥ä¾¿ä»¥ååšä¹˜æ³•
 	makeDepth32f(guided, guided_32f);
 
-	Mat mat_Ip, mat_I2;   //¼ÆËãI*pºÍI*I
+	Mat mat_Ip, mat_I2;   //è®¡ç®—I*på’ŒI*I
 	multiply(guided_32f, source_32f, mat_Ip);
 	multiply(guided_32f, guided_32f, mat_I2);
 	
-	Mat mean_p, mean_I, mean_Ip, mean_I2;   //¼ÆËã¸÷ÖÖ¾ùÖµ
+	Mat mean_p, mean_I, mean_Ip, mean_I2;   //è®¡ç®—å„ç§å‡å€¼
 	Size win_size(2 * radius + 1, 2 * radius + 1);
 	boxFilter(source_32f, mean_p, CV_32F, win_size);
 	boxFilter(guided_32f, mean_I, CV_32F, win_size);
 	boxFilter(mat_Ip, mean_Ip, CV_32F, win_size);
 	boxFilter(mat_I2, mean_I2, CV_32F, win_size);
 	
-	Mat cov_Ip = mean_Ip - mean_I.mul(mean_p);//¼ÆËãIpµÄĞ­·½²îºÍIµÄ·½²î
+	Mat cov_Ip = mean_Ip - mean_I.mul(mean_p);//è®¡ç®—Ipçš„åæ–¹å·®å’ŒIçš„æ–¹å·®
 	Mat var_I = mean_I2 - mean_I.mul(mean_I);
 	var_I += epsilon;
 	
-	Mat a, b;   //ÇóaºÍb
+	Mat a, b;   //æ±‚aå’Œb
 	divide(cov_Ip, var_I, a);
 	b = mean_p - a.mul(mean_I);
 	
-	Mat mean_a, mean_b;  //¶Ô°üº¬ÏñËØiµÄËùÓĞa¡¢b×öÆ½¾ù
+	Mat mean_a, mean_b;  //å¯¹åŒ…å«åƒç´ içš„æ‰€æœ‰aã€båšå¹³å‡
 	boxFilter(a, mean_a, CV_32F, win_size);
 	boxFilter(b, mean_b, CV_32F, win_size);
 	
-	output = mean_a.mul(guided_32f) + mean_b;//¼ÆËãÊä³ö (depth == CV_32F)
+	output = mean_a.mul(guided_32f) + mean_b;//è®¡ç®—è¾“å‡º (depth == CV_32F)
 }
 
 
@@ -61,15 +61,15 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 {
 	CV_Assert(!image.empty() && image.channels() == 3);
 	Mat fImage;
-	image.convertTo(fImage, CV_32FC3, 1.0 / 255, 0);//Í¼Æ¬¹éÒ»»¯
+	image.convertTo(fImage, CV_32FC3, 1.0 / 255, 0);//å›¾ç‰‡å½’ä¸€åŒ–
 	
 	Mat fImageBorder;
-	int hPatch = 15,vPatch = 15;//Éè¶¨×îĞ¡ÂË²¨patchµÄ´óĞ¡,ÇÒ¾ùÎªÆæÊı
-	copyMakeBorder(fImage, fImageBorder, vPatch / 2, vPatch / 2, hPatch / 2, hPatch / 2, BORDER_REPLICATE);//¸ø¹éÒ»»¯µÄÍ¼Æ¬Ìí¼Ó±ß½ç
+	int hPatch = 15,vPatch = 15;//è®¾å®šæœ€å°æ»¤æ³¢patchçš„å¤§å°,ä¸”å‡ä¸ºå¥‡æ•°
+	copyMakeBorder(fImage, fImageBorder, vPatch / 2, vPatch / 2, hPatch / 2, hPatch / 2, BORDER_REPLICATE);//ç»™å½’ä¸€åŒ–çš„å›¾ç‰‡æ·»åŠ è¾¹ç•Œ
 	vector<Mat> fImageBorderVector(3);
-	split(fImageBorder, fImageBorderVector);//·ÖÀëÍ¨µÀ
+	split(fImageBorder, fImageBorderVector);//åˆ†ç¦»é€šé“
 	
-	Mat darkChannel(image.rows, image.cols, CV_32FC1);//´´½¨darkChannel
+	Mat darkChannel(image.rows, image.cols, CV_32FC1);//åˆ›å»ºdarkChannel
 	double minTemp, minPixel;
 	for (unsigned int r = 0; r < darkChannel.rows; r++)
 	{
@@ -87,17 +87,17 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 	}
 	//darkChannel.convertTo(darkChannel8U, CV_8UC1, 255, 0);
 	
-	//Çó³öA(global atmospheric light),¼ÆËã³ödarkChannelÖĞÇ°top¸öÁÁµÄÖµ,ÂÛÎÄÖĞÈ¡ÖµÎª0.1%
+	//æ±‚å‡ºA(global atmospheric light),è®¡ç®—å‡ºdarkChannelä¸­å‰topä¸ªäº®çš„å€¼,è®ºæ–‡ä¸­å–å€¼ä¸º0.1%
 	float top = 0.001;
 	float numberTop = top * darkChannel.rows*darkChannel.cols;
 	Mat darkChannelVector;
-	darkChannelVector = darkChannel.reshape(1, 1);//reshapeµÄÒ»¸ö²ÎÊı±íÊ¾Í¨µÀÊı£¬µÚ¶ş¸ö±íÊ¾¾ØÕóĞĞÊı
+	darkChannelVector = darkChannel.reshape(1, 1);//reshapeçš„ä¸€ä¸ªå‚æ•°è¡¨ç¤ºé€šé“æ•°ï¼Œç¬¬äºŒä¸ªè¡¨ç¤ºçŸ©é˜µè¡Œæ•°
 	Mat_<int> darkChannelVectorIndex;
-	sortIdx(darkChannelVector, darkChannelVectorIndex, CV_SORT_EVERY_ROW + CV_SORT_DESCENDING);//½µĞò£¬·µ»ØÏñËØË÷Òı
+	sortIdx(darkChannelVector, darkChannelVectorIndex, CV_SORT_EVERY_ROW + CV_SORT_DESCENDING);//é™åºï¼Œè¿”å›åƒç´ ç´¢å¼•
 
 	int count = 0, temp = 0;
-	unsigned int x, y; //Ó³Éä»Ø°µÍ¨µÀÍ¼µÄÏñËØÎ»ÖÃ
-	Mat mask(darkChannel.rows, darkChannel.cols, CV_8UC1);//ÖÆ×÷ÑÚÂë,×¢ÒâmaskµÄÀàĞÍ±ØĞëÊÇCV_8UC1
+	unsigned int x, y; //æ˜ å°„å›æš—é€šé“å›¾çš„åƒç´ ä½ç½®
+	Mat mask(darkChannel.rows, darkChannel.cols, CV_8UC1);//åˆ¶ä½œæ©ç ,æ³¨æ„maskçš„ç±»å‹å¿…é¡»æ˜¯CV_8UC1
 	for (unsigned int r = 0; r < darkChannelVectorIndex.rows; r++)
 	{
 		for (unsigned int c = 0; c < darkChannelVectorIndex.cols; c++)
@@ -116,8 +116,8 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 		}
 	}
 
-	vector<double> A(3);                //·Ö±ğ´æÈ¡B,G,RÍ¨µÀµÄ×î´óAÖµ
-	vector<Mat> fImageBorderVectorA(3);//ÔÚÇóµÚÈı²½µÄt(x)Ê±£¬»áÓÃµ½ÒÔÏÂµÄ¾ØÕó£¬ÕâÀï¿ÉÒÔÌáÇ°Çó³ö
+	vector<double> A(3);                //åˆ†åˆ«å­˜å–B,G,Ré€šé“çš„æœ€å¤§Aå€¼
+	vector<Mat> fImageBorderVectorA(3);//åœ¨æ±‚ç¬¬ä¸‰æ­¥çš„t(x)æ—¶ï¼Œä¼šç”¨åˆ°ä»¥ä¸‹çš„çŸ©é˜µï¼Œè¿™é‡Œå¯ä»¥æå‰æ±‚å‡º
 	vector<double>::iterator itA = A.begin();
 	vector<Mat>::iterator it = fImageBorderVector.begin();
 	vector<Mat>::iterator itAA = fImageBorderVectorA.begin();
@@ -125,12 +125,12 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 	{
 		Mat roi(*it, Rect(0, 0, darkChannel.cols, darkChannel.rows));
 		minMaxLoc(roi, 0, &(*itA), 0, 0, mask);
-		(*itAA) = (*it) / (*itA); //×¢Òâ£ºÕâ¸öµØ·½ÓĞ³ıºÅ£¬µ«ÊÇÃ»ÓĞÅĞ¶ÏÊÇ·ñµÈÓÚ0,*itAµÈÓÚÁãµÄ¿ÉÄÜĞÔºÜĞ¡
+		(*itAA) = (*it) / (*itA); //æ³¨æ„ï¼šè¿™ä¸ªåœ°æ–¹æœ‰é™¤å·ï¼Œä½†æ˜¯æ²¡æœ‰åˆ¤æ–­æ˜¯å¦ç­‰äº0,*itAç­‰äºé›¶çš„å¯èƒ½æ€§å¾ˆå°
 	}
 
-	//Çó³öt(x)
+	//æ±‚å‡ºt(x)
 	Mat darkChannelA(darkChannel.rows, darkChannel.cols, CV_32FC1);
-	float omega = 0.95;      //ÂÛÎÄÖĞÈ¡ÖµÎª0.95
+	float omega = 0.95;      //è®ºæ–‡ä¸­å–å€¼ä¸º0.95
 	for (unsigned int r = 0; r < darkChannel.rows; r++)
 	{
 		for (unsigned int c = 0; c < darkChannel.cols; c++)
@@ -154,8 +154,8 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 	imshow("tx", tx);
 
 
-	//Çó³öJ(x)
-	float t0 = 0.1;//ÂÛÎÄÖĞÈ¡0.1
+	//æ±‚å‡ºJ(x)
+	float t0 = 0.1;//è®ºæ–‡ä¸­å–0.1
 	//Mat jx(image.rows, image.cols, CV_32FC3);
 	for (size_t r = 0; r < imageRGB.rows; r++)
 	{
@@ -170,21 +170,21 @@ void HazeRemoval(Mat& image, Mat& imageRGB)
 
 int main()
 {
-	Mat image = imread("C:\\AllProgram\\testimage\\haze1.bmp");//ÉèÖÃ0Ğ´Èë»Ò¶ÈÍ¼Ïñ
+	Mat image = imread("C:\\AllProgram\\testimage\\haze1.bmp");//è®¾ç½®0å†™å…¥ç°åº¦å›¾åƒ
 	if (image.empty())
 	{
-		std::cout << "´ò¿ªÍ¼Æ¬Ê§°Ü,Çë¼ì²é" << std::endl;
+		std::cout << "æ‰“å¼€å›¾ç‰‡å¤±è´¥,è¯·æ£€æŸ¥" << std::endl;
 		system("pause");
 		return -1;
 	}
 	Mat testimage(image.size(), CV_32FC3);
 	HazeRemoval(image,testimage);
 	
-	namedWindow("Ô­Í¼", CV_WINDOW_AUTOSIZE);
-	namedWindow("±ä»»ºóµÄÍ¼", CV_WINDOW_AUTOSIZE);
-	imshow("Ô­Í¼", image);
-	imshow("±ä»»ºóµÄÍ¼", testimage);
-                waitKey(0);
+	namedWindow("åŸå›¾", CV_WINDOW_AUTOSIZE);
+	namedWindow("å˜æ¢åçš„å›¾", CV_WINDOW_AUTOSIZE);
+	imshow("åŸå›¾", image);
+	imshow("å˜æ¢åçš„å›¾", testimage);
+        waitKey(0);
 	destroyAllWindows();
 
 	system("pause");
